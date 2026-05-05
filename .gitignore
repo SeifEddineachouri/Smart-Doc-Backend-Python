@@ -1,0 +1,15 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+
+# Local environment and IDE files
+.env
+.idea/
+
+# Generated diagnostics / scratch files
+diag_*.json
+
