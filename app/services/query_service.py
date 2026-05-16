@@ -17,7 +17,10 @@ class QueryService:
             top_k=settings.retrieval_top_k,
         )
 
-        contexts = [chunk.content for chunk in chunks]
+        contexts = [
+            f"[document_id={chunk.document_id} chunk_index={chunk.chunk_index}] {chunk.content}"
+            for chunk in chunks
+        ]
         answer = self._gemini_client.answer_with_context(question=question, contexts=contexts)
         citations = [
             Citation(documentId=chunk.document_id, chunkIndex=chunk.chunk_index, snippet=chunk.content[:240])
