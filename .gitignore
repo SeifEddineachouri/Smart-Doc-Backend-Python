@@ -13,3 +13,9 @@ __pycache__/
 # Generated diagnostics / scratch files
 diag_*.json
 
+
+# Test/coverage & runtime logs
+.coverage
+coverage.xml
+logs.*.log
+*.log

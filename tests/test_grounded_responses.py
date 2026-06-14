@@ -28,8 +28,8 @@ class _FakeModels:
         self.response_text = response_text
         self.calls: list[dict[str, object]] = []
 
-    def generate_content(self, model: str, contents: str) -> SimpleNamespace:
-        self.calls.append({"model": model, "contents": contents})
+    def generate_content(self, model: str, contents: str, config: object | None = None) -> SimpleNamespace:
+        self.calls.append({"model": model, "contents": contents, "config": config})
         return SimpleNamespace(text=self.response_text)
 
 
@@ -61,15 +61,36 @@ def test_query_service_formats_context_with_document_metadata() -> None:
     assert vector_store.calls[0]["document_ids"] == ["contract-v3"]
 
     prompt = gemini._client.models.calls[0]["contents"]
-    assert "Answer the exact question, not a generic summary." in prompt
+    assert "Answer the exact question asked, not a generic summary." in prompt
+    assert "Reply in the SAME language as the question." in prompt
     assert "If the excerpts do not contain the answer" in prompt
     assert "[document_id=contract-v3 chunk_index=2]" in prompt
     assert "The supplier is liable for direct damages only." in prompt
+    # Low-latency config (thinking disabled) is attached to the generation call.
+    assert gemini._client.models.calls[0]["config"] is not None
 
 
-def test_generic_model_answer_falls_back_to_document_excerpt() -> None:
+def test_model_not_found_answer_passes_through() -> None:
+    # When the model correctly reports the answer is absent from the excerpts,
+    # that is a valid response and must NOT be overridden by a raw context dump.
     gemini = GeminiClient()
-    gemini._client = _FakeGeminiApi("Based on the provided context, the answer is not explicit.")
+    not_found = "The document excerpts do not contain enough information to answer this question."
+    gemini._client = _FakeGeminiApi(not_found)
+
+    answer = gemini.answer_with_context(
+        question="What is the recipe for chocolate cake?",
+        contexts=[
+            "[document_id=contract-v3 chunk_index=2] The supplier is liable for direct damages only.",
+        ],
+    )
+
+    assert answer == not_found
+    assert not answer.startswith("Answer grounded in the document:")
+
+
+def test_empty_model_answer_falls_back_to_document_excerpt() -> None:
+    gemini = GeminiClient()
+    gemini._client = _FakeGeminiApi("")
 
     answer = gemini.answer_with_context(
         question="What liabilities are missing?",
@@ -81,7 +102,6 @@ def test_generic_model_answer_falls_back_to_document_excerpt() -> None:
 
     assert answer.startswith("Answer grounded in the document:")
     assert "direct damages only" in answer or "Indirect damages are excluded" in answer
-    assert "Based on the provided context" not in answer
 
 
 def test_no_context_returns_clear_message() -> None:

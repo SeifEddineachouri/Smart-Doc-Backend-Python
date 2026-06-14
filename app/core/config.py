@@ -22,13 +22,18 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SERVICE_TOKEN", "APP_AI_SERVICE_TOKEN", "APP_AI_GATEWAY_SERVICE_TOKEN"),
     )
-    model_name: str = Field(default="gemini-3.1", validation_alias=AliasChoices("MODEL_NAME", "GEMINI_MODEL_NAME"))
-    embedding_model_name: str = "text-embedding-004"
-    local_embedding_dimensions: int = 256
+    model_name: str = Field(default="gemini-2.5-flash", validation_alias=AliasChoices("MODEL_NAME", "GEMINI_MODEL_NAME"))
+    embedding_model_name: str = Field(
+        default="gemini-embedding-001",
+        validation_alias=AliasChoices("EMBEDDING_MODEL_NAME", "GEMINI_EMBEDDING_MODEL_NAME"),
+    )
+    embedding_dimensions: int = Field(default=768, validation_alias=AliasChoices("EMBEDDING_DIMENSIONS"))
+    embedding_query_task_type: str = "RETRIEVAL_QUERY"
+    embedding_document_task_type: str = "RETRIEVAL_DOCUMENT"
     chunk_size_words: int = 220
-    chunk_overlap_words: int = 30
+    chunk_overlap_words: int = 40
     retrieval_top_k: int = 5
-    retrieval_min_score: float = 0.15
+    retrieval_min_score: float = 0.20
     retrieval_lexical_weight: float = 0.15
     retrieval_log_scores: bool = True
 

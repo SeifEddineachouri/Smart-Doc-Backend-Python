@@ -57,7 +57,7 @@ class InMemoryVectorStore:
             allowed = set(document_ids)
             candidates = [chunk for chunk in candidates if chunk.document_id in allowed]
 
-        query_embedding = self._embedding_client.embed_text(question)
+        query_embedding = self._embedding_client.embed_query(question)
         scored = []
         for chunk in candidates:
             lexical_score = _lexical_score(question, chunk.content)
@@ -108,7 +108,17 @@ def _tokenize(text: str) -> set[str]:
 
 
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
-    if not left or not right or len(left) != len(right):
+    if not left or not right:
+        return 0.0
+    if len(left) != len(right):
+        # A dimension mismatch means chunks were embedded with a different model
+        # (e.g. some real, some hash fallback). Surface it instead of silently
+        # scoring them as completely dissimilar.
+        InMemoryVectorStore._logger.warning(
+            "Embedding dimension mismatch in similarity: query=%s chunk=%s. Re-ingest documents to fix.",
+            len(left),
+            len(right),
+        )
         return 0.0
 
     numerator = sum(l * r for l, r in zip(left, right))
